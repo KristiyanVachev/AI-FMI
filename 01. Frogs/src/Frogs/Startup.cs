@@ -39,10 +39,15 @@ namespace Frogs
                     Console.WriteLine(step);
                 }
             }
+            else
+            {
+                Console.WriteLine("No solution.");
+            }
         }
 
         private static Node FindWinner(Node node)
         {
+            //Indexes of each frog that is close enough to make a jump
             var frogsToJumpIndexes = new int[4];
             frogsToJumpIndexes[0] = node.HoleIndex - 2;
             frogsToJumpIndexes[1] = node.HoleIndex - 1;
@@ -51,6 +56,7 @@ namespace Frogs
 
             for (int i = 0; i < 4; i++)
             {
+                //Check if there is a frog at the possition or if the frog is facing the hole
                 if (frogsToJumpIndexes[i] >= 0 && frogsToJumpIndexes[i] < node.Field.Length &&
                     FrogIsInTheRightDirection(node.HoleIndex, frogsToJumpIndexes[i], node.Field[frogsToJumpIndexes[i]]))
                 {
@@ -58,11 +64,11 @@ namespace Frogs
                     var newField = new char[node.Field.Length];
                     Array.Copy(node.Field, newField, node.Field.Length);
 
-                    //Make the jump (switch the places of the hole and the frog
+                    //Make the jump (switch the places of the hole and the frog)
                     newField[node.HoleIndex] = node.Field[frogsToJumpIndexes[i]];
                     newField[frogsToJumpIndexes[i]] = '_';
 
-                    //Create a node and add it
+                    //Create and add the new node
                     var newNode = new Node(node, newField, frogsToJumpIndexes[i]);
                     node.Children.Add(newNode);
 
@@ -144,78 +150,6 @@ namespace Frogs
             }
 
             return field;
-        }
-
-        public static void Step(char[] field, int emptyBlock, int frogToMove, string road)
-        {
-            //create new array
-            var newField = new char[field.Length];
-
-            Array.Copy(field, newField, field.Length);
-
-            //
-            newField[emptyBlock] = newField[frogToMove];
-            newField[frogToMove] = '_';
-
-            //Check if field is winning
-            bool win = true;
-
-            for (int i = 0; i < newField.Length / 2; i++)
-            {
-                if (newField[i] == '>')
-                {
-                    win = false;
-                }
-            }
-
-            if (newField[newField.Length / 2] != '_')
-            {
-                win = false;
-            }
-
-            for (int i = newField.Length / 2 + 1; i < newField.Length; i++)
-            {
-                if (newField[i] == '<')
-                {
-                    win = false;
-                }
-            }
-            //
-
-            string newRoad = string.Copy(road);
-
-            for (int i = 0; i < newRoad.Length; i++)
-            {
-                newRoad += newField[i];
-            }
-
-            if (win)
-            {
-                Console.WriteLine(road.ToString());
-            }
-            else
-            {
-                if (emptyBlock - 1 >= 0 && newField[emptyBlock - 1] == '>')
-                {
-                    Step(newField, frogToMove, emptyBlock - 1, road);
-                }
-
-                if (emptyBlock - 2 >= 0 && newField[emptyBlock - 2] == '>')
-                {
-                    Step(newField, frogToMove, emptyBlock - 2, road);
-                }
-
-                if (emptyBlock + 1 < newField.Length && newField[emptyBlock + 1] == '<')
-                {
-                    Step(newField, frogToMove, emptyBlock + 1, road);
-                }
-
-                if (emptyBlock + 2 < newField.Length && newField[emptyBlock + 2] == '<')
-                {
-                    Step(newField, frogToMove, emptyBlock + 2, road);
-                }
-            }
-
         }
     }
 }
