@@ -8,12 +8,27 @@ namespace SlidingBlocks
     {
         static void Main()
         {
-            var blocks = new int[,]
+            //Manual input
+            Console.Write("n: ");
+            int n = int.Parse(Console.ReadLine());
+
+            var blocks = new int[n, n];
+
+            for (int x = 0; x < n; x++)
             {
-                { 1, 2, 3 },
-                { 4, 5, 6 },
-                { 0, 7, 8 }
-            };
+                for (int y = 0; y < n; y++)
+                {
+                    Console.Write("[" + x + "," + y + "]: ");
+                    blocks[x, y] = int.Parse(Console.ReadLine());
+                }
+            }
+
+            //var blocks = new int[,]
+            //{
+            //    { 1, 2, 3 },
+            //    { 4, 5, 6 },
+            //    { 0, 7, 8 }
+            //};
 
             var initialState = new BlocksState(blocks, CalculateManhattanDistance(blocks), "");
 
