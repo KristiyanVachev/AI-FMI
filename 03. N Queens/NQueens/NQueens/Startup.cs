@@ -9,94 +9,140 @@ namespace NQueens
         public static void Main()
         {
             int n = 4;
-
-            var queens = new List<Tuple<int, int>>();
-            //var queens = new int[n];
+            //There is a queen on each row. The array holds the column possition for each row.
+            var queens = new int[n];
 
             //Initial queen placement
-            for (int y = 0; y < n; y++)
+            for (int row = 0; row < n; row++)
             {
-                var x = GetLowestConflictingX(y, queens, n);
-                //queens[y] = x;
-                queens.Add(Tuple.Create(x, y));
+                var x = GetLowestConflictingColumn(row, queens, row);
+                queens[row] = x;
+            }
+
+            //Keep conflicts count for each queen.
+            var queenConflicts = new int[n];
+            for (int row = 0; row < queenConflicts.Length; row++)
+            {
+                queenConflicts[row] = GetConflictsForQueen(queens[row], row, queens, queens.Length);
             }
 
             var randomGenerator = new Random();
-            //Choose random row. Then choose highest conflicting.
+
+            //1. Choose random row. 
+            //2. TODO Choose highest conflicting.
             //while (true)
-            //{
-            //    var randomColumn = randomGenerator.Next(0, n);
+            for (int i = 0; i < 1000000; i++)
+            {
+                //var randomColumn = randomGenerator.Next(0, n);
+                //TODO chooese higest conflicting row.
+                int maxValue = queenConflicts.Max();
+                int maxValueIndex = queenConflicts.ToList().IndexOf(maxValue);
+                
+                //TODO: If column has 0 conflicts = break while.
+                if (GetConflictsForQueen(queens[maxValueIndex], maxValueIndex, queens, queens.Length) == 0)
+                {
+                    continue;
+                }
 
-            //    //Find the least conflicted X
-            //    var lowestConflicts = int.MaxValue;
-            //    var xCandidates = new List<int>();
+                //Find the least conflicted column
+                var lowestConflicts = int.MaxValue;
+                var xCandidates = new List<int>();
 
-            //    for (int x = 0; x < n; x++)
-            //    {
-            //        var currentXConflicts = ConflictsForQueen(x, randomColumn, queens);
+                for (int x = 0; x < n; x++)
+                {
+                    var currentXConflicts = GetConflictsForQueen(x, maxValueIndex, queens, queens.Length);
 
-            //        if (currentXConflicts < lowestConflicts)
-            //        {
-            //            lowestConflicts = currentXConflicts;
-            //            xCandidates.Clear();
-            //            xCandidates.Add(x);
-            //        }
+                    if (currentXConflicts < lowestConflicts)
+                    {
+                        lowestConflicts = currentXConflicts;
+                        xCandidates.Clear();
+                        xCandidates.Add(x);
+                    }
 
-            //        if (currentXConflicts == lowestConflicts)
-            //        {
-            //            xCandidates.Add(x);
-            //        }
-            //    }
+                    if (currentXConflicts == lowestConflicts)
+                    {
+                        xCandidates.Add(x);
+                    }
+                }
 
-            //    var newX = xCandidates[randomGenerator.Next(0, xCandidates.Count())];
+                var newX = xCandidates[randomGenerator.Next(0, xCandidates.Count())];
 
-            //    //queens[randomColumn].Item1 = newX;
-
-            //}
-
+                queens[maxValueIndex] = newX;
+            }
 
             //Check all possible switches for conflicting, that gives lowest conflicts.
 
             Print(queens, n);
         }
 
-        private static int GetLowestConflictingX(int y, List<Tuple<int, int>> queens, int n)
+        private static int GetLowestConflictingColumn(int row, int[] queens, int queensCount)
         {
-            //Item1 = x, Item2 = conflicts for x
-            var conflictsPerX = new List<Tuple<int, int>>();
+            //Item1 = column, Item2 = conflicts for column
+            var conflictsPerColummn = new List<Tuple<int, int>>();
 
-            for (int x = 0; x < n; x++)
+            //Check the conflicts for each X on the row, and choose a X with lowest conflicts.
+            for (int column = 0; column < queens.Length; column++)
             {
-                var conflictsForX = ConflictsForQueen(x, y, queens);
+                var conflictsForX = GetConflictsForQueen(column, row, queens, queensCount);
 
                 if (conflictsForX == 0)
                 {
-                    return x;
+                    return column;
                 }
 
-                conflictsPerX.Add(Tuple.Create(x, conflictsForX));
+                conflictsPerColummn.Add(Tuple.Create(column, conflictsForX));
             }
 
-            return conflictsPerX.OrderBy(x => x.Item2).FirstOrDefault().Item1;
+            //TODO choose random if more than one with lowest conflicts.
+            return conflictsPerColummn.OrderBy(x => x.Item2).FirstOrDefault().Item1;
         }
 
-        //TODO test
-        private static int ConflictsForQueen(int x, int y, List<Tuple<int, int>> queens)
+        private static int GetConflictsForQueen(int colummn, int row, int[] queens, int queensCount)
         {
-            var sameRow = queens.Count(q => q.Item2 == y);
-            var sameColumn = queens.Count(q => q.Item1 == x);
-            var downUpDiagonal = queens.Count(q => q.Item1 + q.Item2 == x + y);
-            var upDownDiagonal = queens.Count(q => q.Item1 - x == q.Item2 - y);
+            //No need to check for column
+            
+            //TODO - Counting current queen.
 
-            return sameRow + sameColumn + downUpDiagonal + upDownDiagonal;
+            //Check for each row if it contains another queen on the column, the-queen is.
+            var sameColumn = 0;
+            for (int currentRow = 0; currentRow < queensCount; currentRow++)
+            {
+                if (queens[currentRow] == colummn)
+                {
+                    sameColumn++;
+                }
+            }
+
+            //Check if the diagonal, running from bottom to top, contains queens.
+            var downUpDiagonal = 0;
+            for (int currentRow = 0; currentRow < queensCount; currentRow++)
+            {
+                if (currentRow + queens[currentRow] == colummn + row)
+                {
+                    downUpDiagonal++;
+                }
+            }
+
+            //Check if the diagonal, running from top to bottom, contains queens.
+            var upDownDiagonal = 0;
+            for (int currentRow = 0; currentRow < queensCount; currentRow++)
+            {
+                if (queens[currentRow] - colummn == currentRow -row)
+                {
+                    upDownDiagonal++;
+                }
+            }
+
+            return sameColumn + downUpDiagonal + upDownDiagonal;
+
+            //RIP elegant solution
+            //var sameRow = queens.Count(q => q.Item2 == y);
+            //var downUpDiagonal = queens.Count(q => q.Item1 + q.Item2 == x + y);
+            //var upDownDiagonal = queens.Count(q => q.Item1 - x == q.Item2 - y);
         }
 
-        private static void Print(List<Tuple<int, int>> queens, int n)
+        private static void Print(int[] queens, int n)
         {
-            var orderedQueens = queens.OrderBy(x => x.Item1).ThenBy(x => x.Item2).ToList();
-            var currentQueen = 0;
-
-            //X indeces
             Console.Write(" |");
             for (int x = 0; x < n; x++)
             {
@@ -104,19 +150,18 @@ namespace NQueens
             }
             Console.WriteLine();
 
-            for (int x = 0; x < n; x++)
+            for (int y = 0; y < n; y++)
             {
-                Console.Write(x + "|");
-                for (int y = 0; y < n; y++)
+                Console.Write(y + "|");
+                for (int x = 0; x < n; x++)
                 {
-                    if (currentQueen < orderedQueens.Count() && orderedQueens[currentQueen].Item1 == x && orderedQueens[currentQueen].Item2 == y)
+                    if (queens[y] == x)
                     {
                         Console.Write("Q|");
-                        currentQueen++;
                     }
                     else
                     {
-                        if ((x + y) % 2 == 0)
+                        if ((y + x) % 2 == 0)
                         {
                             Console.Write("▓|");
                         }
