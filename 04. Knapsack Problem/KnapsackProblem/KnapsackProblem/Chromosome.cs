@@ -9,7 +9,13 @@ namespace KnapsackProblem
             this.Genes = new List<Gene>();
         }
 
-        public ICollection<Gene> Genes { get; set; }
+        public Chromosome(IList<Gene> genes)
+        {
+            this.Genes = genes;
+        }
+
+
+        public IList<Gene> Genes { get; set; }
 
         public int Fitness { get; set; }
     }
