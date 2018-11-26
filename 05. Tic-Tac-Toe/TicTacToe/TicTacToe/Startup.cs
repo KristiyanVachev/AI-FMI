@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace TicTacToe
 {
@@ -24,7 +25,7 @@ namespace TicTacToe
 
             int move;
 
-            for (int i = 0; i < 9; i++)
+            for (int i = 0; i <= 9; i++)
             {
                 Console.Clear();
                 Console.WriteLine("Human: {0} AI: {1}", HumanSign, AISign);
@@ -45,6 +46,14 @@ namespace TicTacToe
 
                     break;
                 }
+                else
+                {
+                    if (i == 9)
+                    {
+                        Console.WriteLine("Draw");
+                        break;
+                    }
+                }
 
                 if (isAiTurn)
                 {
@@ -54,13 +63,25 @@ namespace TicTacToe
                 }
                 else
                 {
-                    //TODO Add validations
                     Console.WriteLine("Choose available block number:");
-                    move = int.Parse(Console.ReadLine());
+
+                    while (true)
+                    {
+                        var inputMove = Console.ReadLine();
+
+                        if (inputMove.Length == 1 && Regex.IsMatch(inputMove, @"^[0-9]+$") && board.Contains(char.Parse(inputMove)))
+                        {
+                            move = int.Parse(inputMove);
+                            break;
+                        }
+                        else
+                        {
+                            Console.WriteLine("Invalid number!");
+                        }
+                    }
+
                     board[move] = HumanSign;
                 }
-
-
 
                 isAiTurn = !isAiTurn;
             }
@@ -151,7 +172,7 @@ namespace TicTacToe
 
             if (board[2] == board[4] && board[4] == board[6])
             {
-                return board[0] == playerSign ? 10 : -10;
+                return board[2] == playerSign ? 10 : -10;
             }
 
             //Draw
@@ -175,6 +196,7 @@ namespace TicTacToe
                     break;
                 default:
                     Console.WriteLine("Seems like you are too dumb to follow a simple request! You'll need all the help you can get. It's the your turn.");
+                    Console.ReadLine();
                     isAiTurn = false;
                     break;
             }
