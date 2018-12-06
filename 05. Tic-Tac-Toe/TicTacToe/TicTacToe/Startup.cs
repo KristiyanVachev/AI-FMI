@@ -32,7 +32,7 @@ namespace TicTacToe
                 PrintBoard(board);
 
                 //Check for winner
-                var boardResult = CheckFinalBoard(board, AISign);
+                var boardResult = CheckFinalBoard(board);
                 if (boardResult != 0)
                 {
                     if (boardResult > 0)
@@ -58,7 +58,7 @@ namespace TicTacToe
                 if (isAiTurn)
                 {
                     Console.WriteLine("AI's move:");
-                    move = GetMove(board, isAiTurn).Item1;
+                    move = GetMove(board, isAiTurn, Tuple.Create(-1, int.MinValue), Tuple.Create(-1, int.MaxValue)).Item1;
                     board[move] = AISign;
                 }
                 else
@@ -85,58 +85,81 @@ namespace TicTacToe
 
                 isAiTurn = !isAiTurn;
             }
-
-
-
-            //var move = GetMove(initialBoard, 0, isAiTurn);
-
-
-            //PrintBoard(initialBoard);
-
-            //While end
-            //First player move
-            //If player, read input
-            //If AI, GetAIMove - returns state. Check if winning. Else next move.
-
         }
 
-        private static Tuple<int, int> GetMove(char[] board, bool maximize)
+        /// <summary>
+        /// Returns the best possible move the player can make. Implements alpha-beta pruning.
+        /// </summary>
+        /// <param name="board">The current board filled with player signs.</param>
+        /// <param name="maximize">Whether the player is maximizer or minimizer.</param>
+        /// <param name="alpha">Score of the best move the maximizer can make.</param>
+        /// <param name="beta">Score of the best move the minimizer can make.</param>
+        /// <returns>Tuple with Item1 being the board tile index, and Item2 the score of the move.</int></returns>
+        private static Tuple<int, int> GetMove(char[] board, bool maximize, Tuple<int, int> alpha, Tuple<int, int> beta)
         {
             char currentPlayerSign = maximize ? AISign : HumanSign;
+            var currentBestScore = maximize ? beta : alpha;
 
             //If multiple moves are available, explore each of them
             var movesResults = new List<Tuple<int, int>>();
 
+            //For each board tile
             for (int i = 0; i < board.Length; i++)
             {
+                //If it's not filled
                 if (board[i] != AISign && board[i] != HumanSign)
                 {
                     //Make the move
                     char[] newBoard = new char[board.Length];
                     Array.Copy(board, newBoard, board.Length);
-
                     newBoard[i] = currentPlayerSign;
-
-                    //Check if board is full. Return if it is. Else, recurse.
-                    //Check if move is winning or full
-                    var boardScore = CheckFinalBoard(newBoard, AISign);
+                    
+                    //Get the best score for the current move
+                    var boardScore = CheckFinalBoard(newBoard);
                     bool boardIsFull = newBoard.Count(x => x == AISign) + newBoard.Count(x => x == HumanSign) == newBoard.Length;
 
-                    if (boardScore != 0 || boardIsFull)
+                    Tuple<int, int> bestScore = boardScore != 0 || boardIsFull
+                        ? Tuple.Create(i, boardScore)
+                        : Tuple.Create(i, GetMove(newBoard, !maximize, maximize ? alpha : currentBestScore, !maximize ? beta : currentBestScore).Item2);
+
+                    //Add the new move as a possible move
+                    movesResults.Add(bestScore);
+
+                    //Alpha-beta pruning
+                    if (maximize)
                     {
-                        movesResults.Add(Tuple.Create(i, boardScore));
+                        if (bestScore.Item2 > beta.Item2)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            currentBestScore = bestScore;
+                        }
                     }
                     else
                     {
-                        movesResults.Add(Tuple.Create(i, GetMove(newBoard, !maximize).Item2));
+                        if (bestScore.Item2 < alpha.Item2)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            currentBestScore = bestScore;
+                        }
                     }
+
                 }
             }
 
             //Choose the best result if maximize or the worst if minimize
-            return maximize ? movesResults.OrderBy(x => x.Item2).LastOrDefault() : movesResults.OrderBy(x => x.Item2).FirstOrDefault();
+            return maximize ? movesResults.OrderBy(x => x.Item2).ThenBy(x => x.Item1).LastOrDefault() : movesResults.OrderBy(x => x.Item2).ThenBy(x => x.Item1).FirstOrDefault();
         }
 
+        /// <summary>
+        /// Pretty print of the board.
+        /// </summary>
+        /// <param name="board"></param>
         private static void PrintBoard(char[] board)
         {
             Console.WriteLine("|" + board[0] + "|" + board[1] + "|" + board[2] + "|");
@@ -144,14 +167,19 @@ namespace TicTacToe
             Console.WriteLine("|" + board[6] + "|" + board[7] + "|" + board[8] + "|");
         }
 
-        private static int CheckFinalBoard(char[] board, char playerSign)
+        /// <summary>
+        /// Checks if the board is in a final state.
+        /// </summary>
+        /// <param name="board"></param>
+        /// <returns>10 if the AI wins, -10 if the human wins and 0 in any other case.</returns>
+        private static int CheckFinalBoard(char[] board)
         {
             //Check horizontally
             for (int i = 0; i < 9; i += 3)
             {
                 if (board[i] == board[i + 1] && board[i + 1] == board[i + 2])
                 {
-                    return board[i] == playerSign ? 10 : -10;
+                    return board[i] == AISign ? 10 : -10;
                 }
             }
 
@@ -160,25 +188,29 @@ namespace TicTacToe
             {
                 if (board[i] == board[i + 3] && board[i + 3] == board[i + 6])
                 {
-                    return board[i] == playerSign ? 10 : -10;
+                    return board[i] == AISign ? 10 : -10;
                 }
             }
 
             //Check diagonals
             if (board[0] == board[4] && board[4] == board[8])
             {
-                return board[0] == playerSign ? 10 : -10;
+                return board[0] == AISign ? 10 : -10;
             }
 
             if (board[2] == board[4] && board[4] == board[6])
             {
-                return board[2] == playerSign ? 10 : -10;
+                return board[2] == AISign ? 10 : -10;
             }
 
             //Draw
             return 0;
         }
 
+        /// <summary>
+        /// Prompts the human to enter who's turn it is.
+        /// </summary>
+        /// <returns></returns>
         private static bool ReadTurn()
         {
             Console.WriteLine("Choose who goes first. 0 for human, 1 for AI.");
