@@ -16,11 +16,14 @@ namespace TicTacToe
             bool isAiTurn = ReadTurn();
             var board = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8' };
 
+            //When AI is in a disadvantage and has no winning move (if human plays best) 
+            //it still plays to prolong it's defeat.
+
             //bool isAiTurn = true;
             //var board = new char[] {
-            //    HumanSign, '1', AISign,
-            //    AISign, '4', AISign,
-            //    '6', HumanSign, HumanSign
+            //    HumanSign, '1', '2',
+            //    HumanSign, '4', '5',
+            //    '6', '7', '8'
             //};
 
             int move;
@@ -174,12 +177,15 @@ namespace TicTacToe
         /// <returns>10 if the AI wins, -10 if the human wins and 0 in any other case.</returns>
         private static int CheckFinalBoard(char[] board)
         {
+            int movesLeft = board.Length - board.Count(x => x == AISign || x == HumanSign);
+            int score = 1 + movesLeft;
+
             //Check horizontally
             for (int i = 0; i < 9; i += 3)
             {
                 if (board[i] == board[i + 1] && board[i + 1] == board[i + 2])
                 {
-                    return board[i] == AISign ? 10 : -10;
+                    return board[i] == AISign ? score : -score;
                 }
             }
 
@@ -188,19 +194,19 @@ namespace TicTacToe
             {
                 if (board[i] == board[i + 3] && board[i + 3] == board[i + 6])
                 {
-                    return board[i] == AISign ? 10 : -10;
+                    return board[i] == AISign ? score : -score;
                 }
             }
 
             //Check diagonals
             if (board[0] == board[4] && board[4] == board[8])
             {
-                return board[0] == AISign ? 10 : -10;
+                return board[0] == AISign ? score : -score;
             }
 
             if (board[2] == board[4] && board[4] == board[6])
             {
-                return board[2] == AISign ? 10 : -10;
+                return board[2] == AISign ? score : -score;
             }
 
             //Draw
