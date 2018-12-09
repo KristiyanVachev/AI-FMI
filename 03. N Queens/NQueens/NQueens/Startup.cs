@@ -8,7 +8,7 @@ namespace NQueens
     {
         public static void Main()
         {
-            int n = 2000;
+            int n = 1000 ;
             //There is a queen on each row. The array holds the column possition for each row.
             var queens = new int[n];
 
@@ -29,8 +29,12 @@ namespace NQueens
             //Algorithm
             int highestConflictingRow = GetHighestConflictingQueen(queenConflicts);
 
+            int counter = 0;
+
             while (highestConflictingRow >= 0)
             {
+                counter++;
+
                 var bestNewColumn = GetLowestConflictingColumn(highestConflictingRow, queens, queens.Length);
 
                 queenConflicts = UpdateQueenConflicts(queens, queenConflicts, highestConflictingRow, queens[highestConflictingRow], bestNewColumn);
@@ -40,6 +44,7 @@ namespace NQueens
                 highestConflictingRow = GetHighestConflictingQueen(queenConflicts);
             }
 
+            Console.WriteLine("Steps: " + counter);
             Console.WriteLine("Total conflicts: " + queenConflicts.Sum());
 
             if (queens.Length <= 10)
