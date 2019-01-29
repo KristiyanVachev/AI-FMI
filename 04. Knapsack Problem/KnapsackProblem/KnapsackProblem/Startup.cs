@@ -7,64 +7,30 @@ namespace KnapsackProblem
     public class Startup
     {
         //Must be divisible by 4
-        const int PopulationSize = 512;
-        const int MaxGenerations = 100;
-        //Mutate 1 in 5
-        const int MutationRate = 5;
+        const int PopulationSize = 400;
+        const int ImmortalsCount = PopulationSize / 50;
+        const int MaxGenerations = 40;
+        //Mutate 1 in ...
+        const int MutationRate = 20;
+
+        //Data
+        const int MaxWeight = 5000;
+        const int MaxObjects = 200;
 
         public static void Main()
         {
-            //Input
-            int maxWeight = 5000;
-            int maxObjects = 24;
+            var genes = GetGenes(3);
 
-            var genes = GetGenes(2);
-
-            var population = GenerateInitialPopulation(genes, maxWeight, maxObjects);
-
-            //Compute fitness
-            foreach (var chromesome in population)
-            {
-                ComputeFitness(chromesome, maxWeight, maxObjects);
-            }
+            var population = GenerateInitialPopulation(genes, MaxWeight, MaxObjects);
 
             for (int i = 0; i < MaxGenerations; i++)
             {
                 population = Selection(population);
 
-                //Crossover each of the parents at random and fill the place of the dead.
-                population = Crossover(population);
+                population = CrossoverAndMutate(population, genes);
 
-                //Mutate everybody
-                Mutation(population, genes);
-
-                //Compute fitness
-                foreach (var chromesome in population)
-                {
-                    ComputeFitness(chromesome, maxWeight, maxObjects);
-                }
-
-                //Printing
-                if (i == 10)
-                {
-                    Console.WriteLine("       Step " + i + " : " + population.OrderByDescending(x => x.Fitness).FirstOrDefault().Genes.Sum(x => x.Value));
-                }
-                if (i == (MaxGenerations / 4) * 1)
-                {
-                    Console.WriteLine("25%: - Step " + i + " : " + population.OrderByDescending(x => x.Fitness).FirstOrDefault().Genes.Sum(x => x.Value));
-                }
-                if (i == (MaxGenerations / 4) * 2)
-                {
-                    Console.WriteLine("50%: - Step " + i + " : " + population.OrderByDescending(x => x.Fitness).FirstOrDefault().Genes.Sum(x => x.Value));
-                }
-                if (i == (MaxGenerations / 4) * 3)
-                {
-                    Console.WriteLine("75%  - Step " + i + " : " + population.OrderByDescending(x => x.Fitness).FirstOrDefault().Genes.Sum(x => x.Value));
-                }
-
+                Console.WriteLine("Step " + i + " : " + population.OrderByDescending(x => x.Fitness).FirstOrDefault().Genes.Sum(x => x.Value));
             }
-
-            Console.WriteLine("100% - Step " + MaxGenerations + " : " + population.OrderByDescending(x => x.Fitness).FirstOrDefault().Genes.Sum(x => x.Value));
         }
 
         private static Chromosome[] GenerateInitialPopulation(List<Gene> genes, int maxWeight, int maxObjects)
@@ -93,6 +59,8 @@ namespace KnapsackProblem
                         population[i].Genes.Add(newGene);
                     }
                 }
+
+                ComputeFitness(population[i]);
             }
 
             return population;
@@ -103,12 +71,12 @@ namespace KnapsackProblem
         /// </summary>
         /// <param name="chromosome"></param>
         /// <param name="maxWeight"></param>
-        private static void ComputeFitness(Chromosome chromosome, int maxWeight, int maxObjects)
+        private static void ComputeFitness(Chromosome chromosome)
         {
             var totalWeight = chromosome.Genes.Select(x => x.Weight).Sum();
 
             //TODO - Tolerate overStuffness? Could make a bool and set fitness to maxValue if overstuffed.
-            if (totalWeight > maxWeight || chromosome.Genes.Count > maxObjects)
+            if (totalWeight > MaxWeight || chromosome.Genes.Count > MaxObjects)
             {
                 chromosome.Fitness = -1;
             }
@@ -129,65 +97,115 @@ namespace KnapsackProblem
         {
             population = population.OrderByDescending(x => x.Fitness).ToArray();
 
-            //Spare the 1/4 fittest
-            for (int i = population.Length / 4; i < population.Length; i++)
+            //Spare the fittest half
+            for (int i = population.Length / 2; i < population.Length; i++)
             {
-                //Then spare every 3rd
-                if ((i - population.Length / 4) % 3 != 0)
-                {
-                    population[i] = null;
-                }
+                population[i] = null;
             }
 
             return population;
         }
 
-        private static Chromosome[] Crossover(Chromosome[] population)
+        private static Chromosome[] CrossoverAndMutate(Chromosome[] population, IList<Gene> genes)
         {
+            var randomGenerator = new Random();
+
             //Randomize the population left alive after the selection
             population = population.OrderByDescending(x => x != null).ToArray();
-            var parents = population.Take(population.Length / 2).OrderBy(x => Guid.NewGuid()).ToArray();
-            var emptyPopulationSpace = population.Length / 2;
+            var parents = population.Take(population.Length / 2).ToArray();
+            var emptyPopulationSpaceIndex = population.Length / 2;
 
             //For each pair of parents
-            for (int i = 0; i < parents.Length - 1; i += 2)
+            for (int i = 0; i < population.Length - ImmortalsCount; i++)
             {
-                //Create a child that's a copy of one of the parents
-                var firstChild = parents[i].Genes.ToList();
-                var secondChild = parents[i + 1].Genes.ToList();
-
-                bool swapGenes;
-                int geneSwapCount = 0;
-
-                //Swap their genes nearing 50% swaps.
-                //TODO The case with differently sized parents
-                for (int j = 0; j < Math.Min(firstChild.Count, secondChild.Count); j++)
+                while (true)
                 {
-                    swapGenes = GetChanceForSwap(j, geneSwapCount);
+                    var firstParent = parents[randomGenerator.Next(0, parents.Length - 1)];
+                    var secondParent = parents[randomGenerator.Next(0, parents.Length - 1)];
 
-                    if (swapGenes)
+                    var childGenes = new List<Gene>();
+                    for (int j = 0; j < firstParent.Genes.Count; j++)
                     {
-                        //Don't allow for gene repetition
-                        if (firstChild.Contains(secondChild[j]) == false && secondChild.Contains(firstChild[j]) == false)
+                        if (randomGenerator.Next(0, 1) == 0)
                         {
-                            var firstChildGene = firstChild[j];
-
-                            firstChild[j] = secondChild[j];
-                            secondChild[j] = firstChildGene;
-
-                            geneSwapCount++;
+                            childGenes.Add(firstParent.Genes[j]);
+                        }
+                        else
+                        {
+                            if (secondParent.Genes.Count < j)
+                            {
+                                childGenes.Add(secondParent.Genes[j]);
+                            }
+                            else
+                            {
+                                //TODO: Maybe add first gene again
+                                break;
+                            }
                         }
                     }
+
+                    var newChild = new Chromosome(childGenes);
+                    newChild = Mutation(newChild, genes);
+
+                    ComputeFitness(newChild);
+
+                    if (newChild.Fitness >= 0)
+                    {
+                        population[i] = newChild;
+                        break;
+                    }
                 }
+            }
 
-                population[emptyPopulationSpace] = new Chromosome(firstChild);
-                emptyPopulationSpace++;
+            for (int i = 0; i < ImmortalsCount; i++)
+            {
+                population[population.Length - ImmortalsCount + i] = parents[i];
+            }
 
-                population[emptyPopulationSpace] = new Chromosome(secondChild);
-                emptyPopulationSpace++;
+            if (population.Any(x => x == null))
+            {
+                Console.WriteLine();
             }
 
             return population;
+        }
+
+        private static Chromosome Mutation(Chromosome individual, IList<Gene> genes)
+        {
+            if (MutationRate != 0)
+            {
+                var randomGenerator = new Random();
+
+                for (int j = 0; j < individual.Genes.Count; j += MutationRate)
+                {
+                    var randomGene = genes[randomGenerator.Next(0, genes.Count)];
+
+                    //If gene is not already contained, do a mutation. Mutation strategy 2 yields the best results.
+                    if (!individual.Genes.Contains(randomGene))
+                    {
+                        //Option 1 - Replace first gene
+                        //individual.Genes[j] = randomGene;
+
+                        //Option 2 - 50/50 add or replace
+                        if (randomGenerator.Next(0, 1) == 0)
+                        {
+                            individual.Genes.Add(randomGene);
+                        }
+                        else
+                        {
+                            individual.Genes[j] = randomGene;
+                        }
+
+                        //Option 3 - Mutate only if replacing a gene makes the chromosome better.
+                        //if (randomGene.Value >= individual.Genes[j].Value)
+                        //{
+                        //    individual.Genes[j] = randomGene;
+                        //}
+                    }
+                }
+            }
+
+            return individual;
         }
 
         /// <summary>
@@ -215,52 +233,6 @@ namespace KnapsackProblem
             }
 
             return false;
-        }
-
-        private static void Mutation(Chromosome[] population, IList<Gene> genes)
-        {
-            if (MutationRate != 0)
-            {
-                var randomGenerator = new Random();
-
-                for (int i = 0; i < population.Length; i++)
-                {
-                    for (int j = 0; j < population[i].Genes.Count; j += MutationRate)
-                    {
-                        var randomGene = genes[randomGenerator.Next(0, genes.Count)];
-
-                        if (!population[i].Genes.Contains(randomGene))
-                        {
-                            //Option 1 - Replace first gene
-                            //population[i].Genes[j] = randomGene;
-
-                            //Option 2 - Random add or replace
-                            //if (randomGenerator.Next(0, 1) == 0)
-                            //{
-                            //    population[i].Genes[j] = randomGene;
-                            //}
-                            //else
-                            //{
-                            //    population[i].Genes.Add(randomGene);
-                            //}
-
-                            //Option 3 - Mutate only if mutation makes it better.
-                            if (randomGene.Value >= population[i].Genes[j].Value)
-                            {
-                                population[i].Genes[j] = randomGene;
-                            }
-                        }
-                        ////Random remove gene
-                        //else
-                        //{
-                        //    if (randomGenerator.Next(1, 4) == 1)
-                        //    {
-                        //        population[i].Genes.Remove(population[i].Genes[j]);
-                        //    }
-                        //}
-                    }
-                }
-            }
         }
 
         private static List<Gene> GetGenes(int data)
